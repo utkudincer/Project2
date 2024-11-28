@@ -4,6 +4,7 @@ public class File {
     private String lastModifiedDate;
     private int size;
     private String accessLevel; // USER or SYSTEM
+    private File nextSiblingFile;
 
     public File(String name, String extension, String lastModifiedDate, int size, String accessLevel) {
         this.name = name;
@@ -11,6 +12,7 @@ public class File {
         this.lastModifiedDate = lastModifiedDate;
         this.size = size;
         this.accessLevel = accessLevel;
+        this.nextSiblingFile = null;
     }
 
     // Getter ve Setter metotları
@@ -28,6 +30,9 @@ public class File {
 
     public String getAccessLevel() { return accessLevel; }
     public void setAccessLevel(String accessLevel) { this.accessLevel = accessLevel; }
+
+    public File getNextSiblingFile() { return nextSiblingFile; }
+    public void setNextSiblingFile(File nextSiblingFile) { this.nextSiblingFile = nextSiblingFile; }
 
     @Override
     public String toString() {

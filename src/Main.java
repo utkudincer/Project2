@@ -4,7 +4,7 @@ public class Main {
     public static void main(String[] args) {
         FileSystem fileSystem = new FileSystem();
 
-        // myfiles.txt dosyasını yükle
+        // Load myfiles.txt
         System.out.println("Loading file system from myfiles.txt...");
         fileSystem.loadFromFile("src/myfiles.txt");
         System.out.println("File system loaded successfully!");
@@ -26,8 +26,14 @@ public class Main {
             System.out.println("9. Exit");
             System.out.print("Enter your choice (1-9): ");
 
+            if (!scanner.hasNextInt()) {
+                System.out.println("Invalid input. Please enter a number between 1 and 9.");
+                scanner.next(); // Skip invalid input
+                continue;
+            }
+
             command = scanner.nextInt();
-            scanner.nextLine(); // Buffer temizliği
+            scanner.nextLine(); // Clear buffer
 
             switch (command) {
                 case 1: // Display File System
@@ -35,62 +41,72 @@ public class Main {
                     break;
 
                 case 2: // Add Directory
-                    System.out.print("Path: ");
+                    System.out.print("Enter the path where you want to add the directory like /root/usr/MyDocuments: ");
                     String dirPath = scanner.nextLine();
-                    System.out.print("Directory name: ");
+                    System.out.print("Enter the name of the new directory: ");
                     String dirName = scanner.nextLine();
                     fileSystem.addDirectory(dirPath, dirName);
                     break;
 
                 case 3: // Add File
-                    System.out.print("Path: ");
+                    System.out.print("Enter the path where you want to add the file like /root/usr/MyDocuments: ");
                     String filePath = scanner.nextLine();
-                    System.out.print("File name: ");
+                    System.out.print("Enter the file name without extension: ");
                     String fileName = scanner.nextLine();
-                    System.out.print("Extension: ");
+                    System.out.print("Enter the file extension like txt pdf... without dot: ");
                     String extension = scanner.nextLine();
-                    System.out.print("Last modified date: ");
+                    System.out.print("Enter the last modified date (dd.MM.yyyy): ");
                     String date = scanner.nextLine();
-                    System.out.print("Size (bytes): ");
+                    System.out.print("Enter the size of the file in bytes: ");
+                    if (!scanner.hasNextInt()) {
+                        System.out.println("Invalid size. Please enter a numeric value.");
+                        scanner.next(); // Skip invalid input
+                        break;
+                    }
                     int size = scanner.nextInt();
-                    scanner.nextLine(); // Buffer temizliği
-                    System.out.print("Access level (USER/SYSTEM): ");
-                    String access = scanner.nextLine();
+                    scanner.nextLine(); // Clear buffer
+                    System.out.print("Enter the access level (USER/SYSTEM): ");
+                    String access = scanner.nextLine().toUpperCase();
+                    if (!access.equals("USER") && !access.equals("SYSTEM")) {
+                        System.out.println("Invalid access level. Please enter either USER or SYSTEM.");
+                        break;
+                    }
                     fileSystem.addFile(filePath, fileName, extension, date, size, access);
                     break;
 
                 case 4: // Delete Directory
-                    System.out.print("Path: ");
+                    System.out.print("Enter the full path of the directory to delete like /root/usr/MyDocuments/important: ");
                     String delDirPath = scanner.nextLine();
                     fileSystem.deleteDirectory(delDirPath);
                     break;
 
                 case 5: // Delete File
-                    System.out.print("Path: ");
+                    System.out.print("Enter the full path of the file to delete like /root/usr/MyDocuments/important/Application.txt): ");
                     String delFilePath = scanner.nextLine();
                     fileSystem.deleteFile(delFilePath);
                     break;
 
                 case 6: // Search by Name
-                    System.out.print("Name to search: ");
+                    System.out.print("Enter the name to search: ");
                     String name = scanner.nextLine();
                     fileSystem.searchByName(name);
                     break;
 
                 case 7: // Search by Extension
-                    System.out.print("Extension to search: ");
+                    System.out.print("Enter the extension to search: ");
                     String ext = scanner.nextLine();
                     fileSystem.searchByExtension(ext);
                     break;
 
                 case 8: // Display Path
-                    System.out.print("Path to display: ");
+                    System.out.print("Enter the path to display like /root/usr/MyDocuments): ");
                     String displayPath = scanner.nextLine();
                     fileSystem.displayPath(displayPath);
                     break;
 
                 case 9: // Exit
                     System.out.println("Exiting...");
+                    scanner.close();
                     return;
 
                 default:

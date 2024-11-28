@@ -1,6 +1,7 @@
-import java.util.*;
-import java.io.*;
-
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Stack;
 
 public class FileSystem {
     private Directory root;
@@ -13,7 +14,7 @@ public class FileSystem {
         return root;
     }
 
-    // Dosya sistemini myfiles.txt'den yükleme
+    // Load File System from myfiles.txt
     public void loadFromFile(String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             Stack<Directory> directoryStack = new Stack<>();
@@ -21,10 +22,13 @@ public class FileSystem {
 
             String line;
             while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) {
+                    continue; // Skip empty lines
+                }
                 int indentLevel = getIndentLevel(line);
                 String trimmedLine = line.trim();
 
-                // Yeni bir klasör
+                // New Directory
                 if (trimmedLine.startsWith("\\")) {
                     String directoryName = trimmedLine.substring(1);
                     Directory newDirectory = new Directory(directoryName);
@@ -36,7 +40,7 @@ public class FileSystem {
                     parentDirectory.addSubDirectory(newDirectory);
                     directoryStack.push(newDirectory);
 
-                } else if (trimmedLine.contains("##")) { // Yeni bir dosya
+                } else if (trimmedLine.contains("##")) { // New File
                     String[] fileData = trimmedLine.split("##");
                     if (fileData.length == 4) {
                         String fileName = fileData[0];
@@ -45,8 +49,12 @@ public class FileSystem {
                         String accessLevel = fileData[3];
 
                         String[] nameParts = fileName.split("\\.");
+                        if (nameParts.length < 2) {
+                            System.out.println("Invalid file entry (missing extension): " + trimmedLine);
+                            continue;
+                        }
                         String name = nameParts[0];
-                        String extension = nameParts.length > 1 ? nameParts[1] : "";
+                        String extension = nameParts[1];
 
                         File newFile = new File(name, extension, lastModifiedDate, size, accessLevel);
                         Directory parentDirectory = directoryStack.peek();
@@ -54,6 +62,8 @@ public class FileSystem {
                     } else {
                         System.out.println("Invalid file entry: " + trimmedLine);
                     }
+                } else {
+                    System.out.println("Unrecognized line format: " + trimmedLine);
                 }
             }
         } catch (IOException e) {
@@ -61,16 +71,16 @@ public class FileSystem {
         }
     }
 
-    // İndent seviyesini belirleme
+    // Determine Indent Level
     private int getIndentLevel(String line) {
         int count = 0;
-        while (line.startsWith("\t", count)) {
+        while (count < line.length() && line.charAt(count) == '\t') {
             count++;
         }
         return count;
     }
 
-    // Dosya sistemi görüntüleme
+    // Display File System
     public void displayFileSystem() {
         displayDirectory(root, 0);
     }
@@ -79,13 +89,19 @@ public class FileSystem {
         printIndent(level);
         System.out.println("\\" + directory.getName());
 
-        for (File file : directory.getFiles()) {
+        // Print Files
+        File tempFile = directory.getFirstFile();
+        while (tempFile != null) {
             printIndent(level + 1);
-            System.out.println(file);
+            System.out.println(tempFile);
+            tempFile = tempFile.getNextSiblingFile();
         }
 
-        for (Directory subDirectory : directory.getSubDirectories()) {
-            displayDirectory(subDirectory, level + 1);
+        // Print Subdirectories
+        Directory tempDir = directory.getFirstSubDirectory();
+        while (tempDir != null) {
+            displayDirectory(tempDir, level + 1);
+            tempDir = tempDir.getNextSiblingDirectory();
         }
     }
 
@@ -95,102 +111,197 @@ public class FileSystem {
         }
     }
 
+    // Navigate to Directory by Path
     private Directory navigateTo(String path) {
+        if (path.equals("/")) return root;
         String[] parts = path.split("/");
         Directory current = root;
         for (String part : parts) {
             if (part.isEmpty()) continue;
-            Optional<Directory> dir = current.getSubDirectories().stream().filter(d -> d.getName().equals(part)).findFirst();
-            if (dir.isPresent()) {
-                current = dir.get();
-            } else {
-                System.out.println("Invalid path: " + path);
+            Directory tempDir = current.getFirstSubDirectory();
+            boolean found = false;
+            while (tempDir != null) {
+                if (tempDir.getName().equals(part)) {
+                    current = tempDir;
+                    found = true;
+                    break;
+                }
+                tempDir = tempDir.getNextSiblingDirectory();
+            }
+            if (!found) {
+                System.out.println("Invalid path segment: " + part);
                 return null;
             }
         }
         return current;
     }
 
+    // Add Directory
     public void addDirectory(String path, String name) {
         Directory parent = navigateTo(path);
         if (parent != null && parent.getAccessLevel().equals("USER")) {
-            parent.addSubDirectory(new Directory(name));
+            Directory newDir = new Directory(name);
+            parent.addSubDirectory(newDir);
+            System.out.println("Directory added successfully at " + path + "/" + name);
         } else {
             System.out.println("Cannot add directory. Access denied or invalid path.");
         }
     }
 
+    // Add File
     public void addFile(String path, String name, String extension, String lastModifiedDate, int size, String accessLevel) {
         Directory parent = navigateTo(path);
         if (parent != null && parent.getAccessLevel().equals("USER")) {
-            parent.addFile(new File(name, extension, lastModifiedDate, size, accessLevel));
+            File newFile = new File(name, extension, lastModifiedDate, size, accessLevel);
+            parent.addFile(newFile);
+            System.out.println("File added successfully at " + path + "/" + name + "." + extension);
         } else {
             System.out.println("Cannot add file. Access denied or invalid path.");
         }
     }
 
+    // Delete Directory
     public void deleteDirectory(String path) {
+        if (path.equals("/")) {
+            System.out.println("Cannot delete root directory.");
+            return;
+        }
+
         String[] parts = path.split("/");
         String name = parts[parts.length - 1];
-        Directory parent = navigateTo(String.join("/", Arrays.copyOf(parts, parts.length - 1)));
+        String parentPath = path.substring(0, path.lastIndexOf('/'));
+        if (parentPath.isEmpty()) parentPath = "/";
+
+        Directory parent = navigateTo(parentPath);
         if (parent != null) {
-            Optional<Directory> dirToDelete = parent.getSubDirectories().stream().filter(d -> d.getName().equals(name)).findFirst();
-            if (dirToDelete.isPresent() && dirToDelete.get().canDelete()) {
-                parent.getSubDirectories().remove(dirToDelete.get());
-            } else {
-                System.out.println("Cannot delete directory. It contains SYSTEM files or invalid path.");
+            Directory prev = null;
+            Directory current = parent.getFirstSubDirectory();
+            while (current != null) {
+                if (current.getName().equals(name)) {
+                    if (current.canDelete() && parent.getAccessLevel().equals("USER")) {
+                        if (prev == null) {
+                            parent.setFirstSubDirectory(current.getNextSiblingDirectory());
+                        } else {
+                            prev.setNextSiblingDirectory(current.getNextSiblingDirectory());
+                        }
+                        System.out.println("Directory deleted successfully.");
+                        parent.recalculateLastModifiedDate(); // Update parent directories
+                    } else {
+                        System.out.println("Cannot delete directory. It contains SYSTEM files or access denied.");
+                    }
+                    return;
+                }
+                prev = current;
+                current = current.getNextSiblingDirectory();
             }
+            System.out.println("Directory not found.");
         }
     }
 
+    // Delete File
     public void deleteFile(String path) {
         String[] parts = path.split("/");
-        String name = parts[parts.length - 1];
-        Directory parent = navigateTo(String.join("/", Arrays.copyOf(parts, parts.length - 1)));
-        if (parent != null) {
-            Optional<File> fileToDelete = parent.getFiles().stream().filter(f -> f.getName().equals(name)).findFirst();
-            if (fileToDelete.isPresent()) {
-                parent.getFiles().remove(fileToDelete.get());
-            } else {
-                System.out.println("File not found.");
+        String filePart = parts[parts.length - 1];
+        String parentPath = path.substring(0, path.lastIndexOf('/'));
+        if (parentPath.isEmpty()) parentPath = "/";
+
+        // Parse file name and extension
+        String[] nameParts = filePart.split("\\.");
+        if (nameParts.length < 2) {
+            System.out.println("Invalid file name format. Must include extension.");
+            return;
+        }
+        String name = nameParts[0];
+        String extension = nameParts[1];
+
+        Directory parent = navigateTo(parentPath);
+        if (parent != null && parent.getAccessLevel().equals("USER")) {
+            File prev = null;
+            File current = parent.getFirstFile();
+            while (current != null) {
+                if (current.getName().equals(name) && current.getExtension().equals(extension)) {
+                    if (current.getAccessLevel().equals("USER")) {
+                        if (prev == null) {
+                            parent.setFirstFile(current.getNextSiblingFile());
+                        } else {
+                            prev.setNextSiblingFile(current.getNextSiblingFile());
+                        }
+                        System.out.println("File deleted successfully.");
+                        parent.recalculateLastModifiedDate(); // Update parent directories
+                    } else {
+                        System.out.println("Cannot delete file. Access denied.");
+                    }
+                    return;
+                }
+                prev = current;
+                current = current.getNextSiblingFile();
             }
+            System.out.println("File not found.");
+        } else {
+            System.out.println("Cannot delete file. Access denied or invalid path.");
         }
     }
 
+    // Search by Name
     public void searchByName(String name) {
         searchByName(root, name, "");
     }
 
     private void searchByName(Directory dir, String name, String path) {
-        for (File file : dir.getFiles()) {
-            if (file.getName().equals(name)) {
-                System.out.println(path + "/" + dir.getName() + "/" + file.getName());
+        String currentPath = path + "/" + dir.getName();
+
+        // Check Files
+        File tempFile = dir.getFirstFile();
+        while (tempFile != null) {
+            if (tempFile.getName().equals(name)) {
+                System.out.println(currentPath + "/" + tempFile.getName() + "." + tempFile.getExtension());
             }
+            tempFile = tempFile.getNextSiblingFile();
         }
-        for (Directory subDir : dir.getSubDirectories()) {
-            searchByName(subDir, name, path + "/" + dir.getName());
+
+        // Search in Subdirectories
+        Directory tempDir = dir.getFirstSubDirectory();
+        while (tempDir != null) {
+            if (tempDir.getName().equals(name)) {
+                System.out.println(currentPath + "/" + tempDir.getName());
+            }
+            searchByName(tempDir, name, currentPath);
+            tempDir = tempDir.getNextSiblingDirectory();
         }
     }
 
+    // Search by Extension
     public void searchByExtension(String extension) {
         searchByExtension(root, extension, "");
     }
 
     private void searchByExtension(Directory dir, String extension, String path) {
-        for (File file : dir.getFiles()) {
-            if (file.getExtension().equals(extension)) {
-                System.out.println(path + "/" + dir.getName() + "/" + file.getName() + "." + extension);
+        String currentPath = path + "/" + dir.getName();
+
+        // Check Files
+        File tempFile = dir.getFirstFile();
+        while (tempFile != null) {
+            if (tempFile.getExtension().equals(extension)) {
+                System.out.println(currentPath + "/" + tempFile.getName() + "." + tempFile.getExtension());
             }
+            tempFile = tempFile.getNextSiblingFile();
         }
-        for (Directory subDir : dir.getSubDirectories()) {
-            searchByExtension(subDir, extension, path + "/" + dir.getName());
+
+        // Search in Subdirectories
+        Directory tempDir = dir.getFirstSubDirectory();
+        while (tempDir != null) {
+            searchByExtension(tempDir, extension, currentPath);
+            tempDir = tempDir.getNextSiblingDirectory();
         }
     }
 
+    // Display Path
     public void displayPath(String path) {
         Directory dir = navigateTo(path);
         if (dir != null) {
-            System.out.println("Path: /" + path);
+            System.out.println("Path: " + path);
+        } else {
+            System.out.println("Invalid path.");
         }
     }
 }
