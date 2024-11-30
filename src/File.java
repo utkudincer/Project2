@@ -3,7 +3,7 @@ public class File {
     private String extension;
     private String lastModifiedDate;
     private int size;
-    private String accessLevel; // USER or SYSTEM
+    private String accessLevel; // USER veya SYSTEM
     private File nextSiblingFile;
 
     public File(String name, String extension, String lastModifiedDate, int size, String accessLevel) {

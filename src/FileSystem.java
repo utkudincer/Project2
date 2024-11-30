@@ -14,7 +14,7 @@ public class FileSystem {
         return root;
     }
 
-    // Load File System from myfiles.txt
+    // Dosya sistemini myfiles.txt'den yükleme
     public void loadFromFile(String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             Stack<Directory> directoryStack = new Stack<>();
@@ -23,12 +23,12 @@ public class FileSystem {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) {
-                    continue; // Skip empty lines
+                    continue; // Boş satırları atla
                 }
                 int indentLevel = getIndentLevel(line);
                 String trimmedLine = line.trim();
 
-                // New Directory
+                // Yeni Dizin
                 if (trimmedLine.startsWith("\\")) {
                     String directoryName = trimmedLine.substring(1);
                     Directory newDirectory = new Directory(directoryName);
@@ -40,7 +40,7 @@ public class FileSystem {
                     parentDirectory.addSubDirectory(newDirectory);
                     directoryStack.push(newDirectory);
 
-                } else if (trimmedLine.contains("##")) { // New File
+                } else if (trimmedLine.contains("##")) { // Yeni Dosya
                     String[] fileData = trimmedLine.split("##");
                     if (fileData.length == 4) {
                         String fileName = fileData[0];
@@ -50,7 +50,7 @@ public class FileSystem {
 
                         String[] nameParts = fileName.split("\\.");
                         if (nameParts.length < 2) {
-                            System.out.println("Invalid file entry (missing extension): " + trimmedLine);
+                            System.out.println("Geçersiz dosya girişi (uzantı eksik): " + trimmedLine);
                             continue;
                         }
                         String name = nameParts[0];
@@ -60,18 +60,18 @@ public class FileSystem {
                         Directory parentDirectory = directoryStack.peek();
                         parentDirectory.addFile(newFile);
                     } else {
-                        System.out.println("Invalid file entry: " + trimmedLine);
+                        System.out.println("Geçersiz dosya girişi: " + trimmedLine);
                     }
                 } else {
-                    System.out.println("Unrecognized line format: " + trimmedLine);
+                    System.out.println("Tanımlanamayan satır formatı: " + trimmedLine);
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error reading the file: " + e.getMessage());
+            System.err.println("Dosya okuma hatası: " + e.getMessage());
         }
     }
 
-    // Determine Indent Level
+    // İndent seviyesini belirleme
     private int getIndentLevel(String line) {
         int count = 0;
         while (count < line.length() && line.charAt(count) == '\t') {
@@ -80,7 +80,7 @@ public class FileSystem {
         return count;
     }
 
-    // Display File System
+    // Dosya sistemi görüntüleme
     public void displayFileSystem() {
         displayDirectory(root, 0);
     }
@@ -89,7 +89,7 @@ public class FileSystem {
         printIndent(level);
         System.out.println("\\" + directory.getName());
 
-        // Print Files
+        // Dosyaları yazdır
         File tempFile = directory.getFirstFile();
         while (tempFile != null) {
             printIndent(level + 1);
@@ -97,7 +97,7 @@ public class FileSystem {
             tempFile = tempFile.getNextSiblingFile();
         }
 
-        // Print Subdirectories
+        // Alt dizinleri yazdır
         Directory tempDir = directory.getFirstSubDirectory();
         while (tempDir != null) {
             displayDirectory(tempDir, level + 1);
@@ -111,7 +111,7 @@ public class FileSystem {
         }
     }
 
-    // Navigate to Directory by Path
+    // Belirtilen yola navigasyon
     private Directory navigateTo(String path) {
         if (path.equals("/")) return root;
         String[] parts = path.split("/");
@@ -129,45 +129,49 @@ public class FileSystem {
                 tempDir = tempDir.getNextSiblingDirectory();
             }
             if (!found) {
-                System.out.println("Invalid path segment: " + part);
+                System.out.println("Geçersiz yol segmenti: " + part);
                 return null;
             }
         }
         return current;
     }
 
-    // Add Directory
+    // Dizin ekleme
     public void addDirectory(String path, String name) {
         Directory parent = navigateTo(path);
         if (parent != null && parent.getAccessLevel().equals("USER")) {
             Directory newDir = new Directory(name);
             parent.addSubDirectory(newDir);
-            System.out.println("Directory added successfully at " + path + "/" + name);
+            System.out.println("Dizin başarıyla eklendi: " + path + "/" + name);
         } else {
-            System.out.println("Cannot add directory. Access denied or invalid path.");
+            System.out.println("Dizin eklenemiyor. Erişim reddedildi veya geçersiz yol.");
         }
     }
 
-    // Add File
+    // Dosya ekleme
     public void addFile(String path, String name, String extension, String lastModifiedDate, int size, String accessLevel) {
         Directory parent = navigateTo(path);
         if (parent != null && parent.getAccessLevel().equals("USER")) {
             File newFile = new File(name, extension, lastModifiedDate, size, accessLevel);
             parent.addFile(newFile);
-            System.out.println("File added successfully at " + path + "/" + name + "." + extension);
+            System.out.println("Dosya başarıyla eklendi: " + path + "/" + name + "." + extension);
         } else {
-            System.out.println("Cannot add file. Access denied or invalid path.");
+            System.out.println("Dosya eklenemiyor. Erişim reddedildi veya geçersiz yol.");
         }
     }
 
-    // Delete Directory
+    // Dizin silme
     public void deleteDirectory(String path) {
         if (path.equals("/")) {
-            System.out.println("Cannot delete root directory.");
+            System.out.println("Kök dizin silinemiyor.");
             return;
         }
 
         String[] parts = path.split("/");
+        if (parts.length < 2) {
+            System.out.println("Geçersiz dizin yolu.");
+            return;
+        }
         String name = parts[parts.length - 1];
         String parentPath = path.substring(0, path.lastIndexOf('/'));
         if (parentPath.isEmpty()) parentPath = "/";
@@ -184,36 +188,43 @@ public class FileSystem {
                         } else {
                             prev.setNextSiblingDirectory(current.getNextSiblingDirectory());
                         }
-                        System.out.println("Directory deleted successfully.");
-                        parent.recalculateLastModifiedDate(); // Update parent directories
+                        System.out.println("Dizin başarıyla silindi: " + path);
+                        parent.recalculateLastModifiedDate(); // Üst dizinleri güncelle
                     } else {
-                        System.out.println("Cannot delete directory. It contains SYSTEM files or access denied.");
+                        System.out.println("Dizin silinemiyor. Sistem dosyaları içeriyor veya erişim reddedildi.");
                     }
                     return;
                 }
                 prev = current;
                 current = current.getNextSiblingDirectory();
             }
-            System.out.println("Directory not found.");
+            System.out.println("Dizin bulunamadı: " + path);
         }
     }
 
-    // Delete File
+    // Dosya silme metodu (Yukarıda tanımlandı)
     public void deleteFile(String path) {
+        // Yol parçalarına bölme
         String[] parts = path.split("/");
+        if (parts.length < 2) {
+            System.out.println("Geçersiz dosya yolu.");
+            return;
+        }
+
+        // Dosya adını ve uzantısını ayrıştırma
         String filePart = parts[parts.length - 1];
         String parentPath = path.substring(0, path.lastIndexOf('/'));
         if (parentPath.isEmpty()) parentPath = "/";
 
-        // Parse file name and extension
         String[] nameParts = filePart.split("\\.");
         if (nameParts.length < 2) {
-            System.out.println("Invalid file name format. Must include extension.");
+            System.out.println("Geçersiz dosya adı formatı. Uzantı olmalı.");
             return;
         }
         String name = nameParts[0];
         String extension = nameParts[1];
 
+        // Parent dizini bulma
         Directory parent = navigateTo(parentPath);
         if (parent != null && parent.getAccessLevel().equals("USER")) {
             File prev = null;
@@ -226,23 +237,23 @@ public class FileSystem {
                         } else {
                             prev.setNextSiblingFile(current.getNextSiblingFile());
                         }
-                        System.out.println("File deleted successfully.");
-                        parent.recalculateLastModifiedDate(); // Update parent directories
+                        System.out.println("Dosya başarıyla silindi: " + path);
+                        parent.recalculateLastModifiedDate(); // Üst dizinleri güncelle
                     } else {
-                        System.out.println("Cannot delete file. Access denied.");
+                        System.out.println("Dosya silinemiyor. Erişim reddedildi.");
                     }
                     return;
                 }
                 prev = current;
                 current = current.getNextSiblingFile();
             }
-            System.out.println("File not found.");
+            System.out.println("Dosya bulunamadı: " + path);
         } else {
-            System.out.println("Cannot delete file. Access denied or invalid path.");
+            System.out.println("Dosya silinemiyor. Erişim reddedildi veya geçersiz yol.");
         }
     }
 
-    // Search by Name
+    // İsme göre arama
     public void searchByName(String name) {
         searchByName(root, name, "");
     }
@@ -250,7 +261,7 @@ public class FileSystem {
     private void searchByName(Directory dir, String name, String path) {
         String currentPath = path + "/" + dir.getName();
 
-        // Check Files
+        // Dosyaları kontrol et
         File tempFile = dir.getFirstFile();
         while (tempFile != null) {
             if (tempFile.getName().equals(name)) {
@@ -259,7 +270,7 @@ public class FileSystem {
             tempFile = tempFile.getNextSiblingFile();
         }
 
-        // Search in Subdirectories
+        // Alt dizinlerde arama yap
         Directory tempDir = dir.getFirstSubDirectory();
         while (tempDir != null) {
             if (tempDir.getName().equals(name)) {
@@ -270,7 +281,7 @@ public class FileSystem {
         }
     }
 
-    // Search by Extension
+    // Uzantıya göre arama
     public void searchByExtension(String extension) {
         searchByExtension(root, extension, "");
     }
@@ -278,7 +289,7 @@ public class FileSystem {
     private void searchByExtension(Directory dir, String extension, String path) {
         String currentPath = path + "/" + dir.getName();
 
-        // Check Files
+        // Dosyaları kontrol et
         File tempFile = dir.getFirstFile();
         while (tempFile != null) {
             if (tempFile.getExtension().equals(extension)) {
@@ -287,7 +298,7 @@ public class FileSystem {
             tempFile = tempFile.getNextSiblingFile();
         }
 
-        // Search in Subdirectories
+        // Alt dizinlerde arama yap
         Directory tempDir = dir.getFirstSubDirectory();
         while (tempDir != null) {
             searchByExtension(tempDir, extension, currentPath);
@@ -295,13 +306,13 @@ public class FileSystem {
         }
     }
 
-    // Display Path
+    // Yolu görüntüleme
     public void displayPath(String path) {
         Directory dir = navigateTo(path);
         if (dir != null) {
             System.out.println("Path: " + path);
         } else {
-            System.out.println("Invalid path.");
+            System.out.println("Geçersiz yol.");
         }
     }
 }

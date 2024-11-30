@@ -2,7 +2,7 @@
 	\dsktp
 		\newFolDer
 		\myGames
-			CoD.exe##23.1.2023#2000##USER
+			CoD.exe##23.1.2023##2000##USER
 	\usr
 		\Downloads
 			\programs

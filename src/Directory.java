@@ -1,8 +1,8 @@
 public class Directory {
     private String name;
     private String lastModifiedDate;
-    private String accessLevel; // USER or SYSTEM
-    private Directory parent; // New field
+    private String accessLevel; // USER veya SYSTEM
+    private Directory parent; // Üst dizine referans
     private Directory firstSubDirectory;
     private Directory nextSiblingDirectory;
     private File firstFile;
@@ -12,14 +12,14 @@ public class Directory {
         this.name = name;
         this.lastModifiedDate = "N/A";
         this.accessLevel = "USER";
-        this.parent = null; // Initialize parent
+        this.parent = null;
         this.firstSubDirectory = null;
         this.nextSiblingDirectory = null;
         this.firstFile = null;
         this.nextSiblingFile = null;
     }
 
-    // Getter and Setter methods
+    // Getter ve Setter metotları
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -44,13 +44,13 @@ public class Directory {
     public File getNextSiblingFile() { return nextSiblingFile; }
     public void setNextSiblingFile(File nextSiblingFile) { this.nextSiblingFile = nextSiblingFile; }
 
-    // Add Subdirectory
+    // Alt dizin ekleme
     public void addSubDirectory(Directory newDirectory) {
         if (!this.accessLevel.equals("USER")) {
-            System.out.println("Access denied. Cannot add subdirectory.");
+            System.out.println("Erişim reddedildi. Alt dizin eklenemiyor.");
             return;
         }
-        newDirectory.setParent(this); // Set parent
+        newDirectory.setParent(this); // Parent referansını ayarla
         if (this.firstSubDirectory == null) {
             this.firstSubDirectory = newDirectory;
         } else {
@@ -63,10 +63,10 @@ public class Directory {
         updateLastModifiedDate(newDirectory.getLastModifiedDate());
     }
 
-    // Add File
+    // Dosya ekleme
     public void addFile(File newFile) {
         if (!this.accessLevel.equals("USER")) {
-            System.out.println("Access denied. Cannot add file.");
+            System.out.println("Erişim reddedildi. Dosya eklenemiyor.");
             return;
         }
         if (this.firstFile == null) {
@@ -81,7 +81,7 @@ public class Directory {
         updateLastModifiedDate(newFile.getLastModifiedDate());
     }
 
-    // Update Last Modified Date
+    // Son değiştirilme tarihini güncelleme
     public void updateLastModifiedDate(String date) {
         if (this.lastModifiedDate.equals("N/A") || date.compareTo(this.lastModifiedDate) > 0) {
             this.lastModifiedDate = date;
@@ -91,34 +91,7 @@ public class Directory {
         }
     }
 
-    // Recalculate Last Modified Date
-    public void recalculateLastModifiedDate() {
-        String latestDate = "N/A";
-        // Check files
-        File tempFile = this.firstFile;
-        while (tempFile != null) {
-            if (tempFile.getLastModifiedDate().compareTo(latestDate) > 0) {
-                latestDate = tempFile.getLastModifiedDate();
-            }
-            tempFile = tempFile.getNextSiblingFile();
-        }
-        // Check subdirectories
-        Directory tempDir = this.firstSubDirectory;
-        while (tempDir != null) {
-            if (tempDir.getLastModifiedDate().compareTo(latestDate) > 0) {
-                latestDate = tempDir.getLastModifiedDate();
-            }
-            tempDir = tempDir.getNextSiblingDirectory();
-        }
-        if (!this.lastModifiedDate.equals(latestDate)) {
-            this.lastModifiedDate = latestDate;
-            if (this.parent != null) {
-                this.parent.recalculateLastModifiedDate();
-            }
-        }
-    }
-
-    // Calculate Size
+    // Boyutu hesaplama
     public int calculateSize() {
         int totalSize = 0;
         File tempFile = this.firstFile;
@@ -135,7 +108,7 @@ public class Directory {
         return totalSize;
     }
 
-    // Check if Directory Can Be Deleted
+    // Silme işlemi için kontrol
     public boolean canDelete() {
         File tempFile = this.firstFile;
         while (tempFile != null) {
@@ -154,5 +127,35 @@ public class Directory {
     @Override
     public String toString() {
         return "Directory: " + name + " (Last Modified: " + lastModifiedDate + ", Access Level: " + accessLevel + ")";
+    }
+
+    // Son değiştirilme tarihini yeniden hesaplama
+    public void recalculateLastModifiedDate() {
+        String latestDate = "N/A";
+
+        // Dosyaların son değiştirilme tarihlerini kontrol et
+        File tempFile = this.firstFile;
+        while (tempFile != null) {
+            if (tempFile.getLastModifiedDate().compareTo(latestDate) > 0) {
+                latestDate = tempFile.getLastModifiedDate();
+            }
+            tempFile = tempFile.getNextSiblingFile();
+        }
+
+        // Alt dizinlerin son değiştirilme tarihlerini kontrol et
+        Directory tempDir = this.firstSubDirectory;
+        while (tempDir != null) {
+            if (tempDir.getLastModifiedDate().compareTo(latestDate) > 0) {
+                latestDate = tempDir.getLastModifiedDate();
+            }
+            tempDir = tempDir.getNextSiblingDirectory();
+        }
+
+        if (!this.lastModifiedDate.equals(latestDate)) {
+            this.lastModifiedDate = latestDate;
+            if (this.parent != null) {
+                this.parent.recalculateLastModifiedDate();
+            }
+        }
     }
 }
