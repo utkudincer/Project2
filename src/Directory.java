@@ -1,8 +1,7 @@
 public class Directory {
     private String name;
     private String lastModifiedDate;
-    private String accessLevel; // USER veya SYSTEM
-    private Directory parent; // Üst dizine referans
+    private String accessLevel; // USER or SYSTEM
     private Directory firstSubDirectory;
     private Directory nextSiblingDirectory;
     private File firstFile;
@@ -10,9 +9,8 @@ public class Directory {
 
     public Directory(String name) {
         this.name = name;
-        this.lastModifiedDate = "N/A";
+        this.lastModifiedDate = "empty";
         this.accessLevel = "USER";
-        this.parent = null;
         this.firstSubDirectory = null;
         this.nextSiblingDirectory = null;
         this.firstFile = null;
@@ -29,9 +27,6 @@ public class Directory {
     public String getAccessLevel() { return accessLevel; }
     public void setAccessLevel(String accessLevel) { this.accessLevel = accessLevel; }
 
-    public Directory getParent() { return parent; }
-    public void setParent(Directory parent) { this.parent = parent; }
-
     public Directory getFirstSubDirectory() { return firstSubDirectory; }
     public void setFirstSubDirectory(Directory firstSubDirectory) { this.firstSubDirectory = firstSubDirectory; }
 
@@ -47,10 +42,9 @@ public class Directory {
     // Alt dizin ekleme
     public void addSubDirectory(Directory newDirectory) {
         if (!this.accessLevel.equals("USER")) {
-            System.out.println("Erişim reddedildi. Alt dizin eklenemiyor.");
+            System.out.println("Access denied. Cannot add subdirectory.");
             return;
         }
-        newDirectory.setParent(this); // Parent referansını ayarla
         if (this.firstSubDirectory == null) {
             this.firstSubDirectory = newDirectory;
         } else {
@@ -66,7 +60,7 @@ public class Directory {
     // Dosya ekleme
     public void addFile(File newFile) {
         if (!this.accessLevel.equals("USER")) {
-            System.out.println("Erişim reddedildi. Dosya eklenemiyor.");
+            System.out.println("Access denied. Cannot add file.");
             return;
         }
         if (this.firstFile == null) {
@@ -85,9 +79,6 @@ public class Directory {
     public void updateLastModifiedDate(String date) {
         if (this.lastModifiedDate.equals("N/A") || date.compareTo(this.lastModifiedDate) > 0) {
             this.lastModifiedDate = date;
-            if (this.parent != null) {
-                this.parent.updateLastModifiedDate(date);
-            }
         }
     }
 
@@ -127,35 +118,5 @@ public class Directory {
     @Override
     public String toString() {
         return "Directory: " + name + " (Last Modified: " + lastModifiedDate + ", Access Level: " + accessLevel + ")";
-    }
-
-    // Son değiştirilme tarihini yeniden hesaplama
-    public void recalculateLastModifiedDate() {
-        String latestDate = "N/A";
-
-        // Dosyaların son değiştirilme tarihlerini kontrol et
-        File tempFile = this.firstFile;
-        while (tempFile != null) {
-            if (tempFile.getLastModifiedDate().compareTo(latestDate) > 0) {
-                latestDate = tempFile.getLastModifiedDate();
-            }
-            tempFile = tempFile.getNextSiblingFile();
-        }
-
-        // Alt dizinlerin son değiştirilme tarihlerini kontrol et
-        Directory tempDir = this.firstSubDirectory;
-        while (tempDir != null) {
-            if (tempDir.getLastModifiedDate().compareTo(latestDate) > 0) {
-                latestDate = tempDir.getLastModifiedDate();
-            }
-            tempDir = tempDir.getNextSiblingDirectory();
-        }
-
-        if (!this.lastModifiedDate.equals(latestDate)) {
-            this.lastModifiedDate = latestDate;
-            if (this.parent != null) {
-                this.parent.recalculateLastModifiedDate();
-            }
-        }
     }
 }
