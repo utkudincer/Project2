@@ -74,7 +74,7 @@ public class Directory {
         }
         updateLastModifiedDate(newFile.getLastModifiedDate());
     }
-
+//a
     // Son değiştirilme tarihini güncelleme
     public void updateLastModifiedDate(String date) {
         if (this.lastModifiedDate.equals("N/A") || date.compareTo(this.lastModifiedDate) > 0) {

@@ -217,7 +217,7 @@ public class FileSystem {
         }
     }
 
-    // İsme göre arama
+    // İdme göre arama
     public void searchByName(String name) {
         searchByName(root, name, "");
     }
